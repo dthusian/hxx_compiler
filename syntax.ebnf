@@ -1,0 +1,31 @@
+(* HXX syntax *)
+
+program = { func };
+
+func = "(", ":fn", "(", func-name, { func-arg }, ")", type-name, stmt-list, ")";
+func-arg = var-decl;
+
+stmt-list = "(", { stmt }, ")";
+stmt = func-call-stmt | set-stmt | let-stmt | if-stmt | while-stmt;
+
+func-call-stmt = func-call;
+set-stmt = "(", ":set", var-name, expr, ")";
+let-stmt = "(", ":let", var-decl, [expr], ")";
+if-stmt = "(", ":if", expr, stmt-list, [stmt-list], ")";
+while-stmt = "(", ":while", expr, stmt-list ")";
+
+expr = const | func-call | varname;
+
+var-decl = "(", var-name, type-name, ")";
+func-call = "(", func-name, {expr}, ")";
+const = nonzero-digit, { digit };
+
+func-name = identifier;
+var-name = identifier;
+type-name = identifier;
+
+identifier = letter, { letter | digit | "_" };
+
+letter = ? a-z A-Z ?;
+nonzero-digit = ? 1-9 ?;
+digit = ? 0-9 ?;
