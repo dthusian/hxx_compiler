@@ -10,7 +10,7 @@ stmt = func-call-stmt | set-stmt | let-stmt | if-stmt | while-stmt;
 
 func-call-stmt = func-call;
 set-stmt = "(", ":set", var-name, expr, ")";
-let-stmt = "(", ":let", var-decl, [expr], ")";
+let-stmt = "(", ":let", var-decl, expr, ")";
 if-stmt = "(", ":if", expr, stmt-list, [stmt-list], ")";
 while-stmt = "(", ":while", expr, stmt-list ")";
 

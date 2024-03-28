@@ -4,6 +4,7 @@ use std::rc::Rc;
 use lexpr::Datum;
 use lexpr::datum::Ref;
 use thiserror::Error;
+use crate::common::sepvec::SepVec;
 use crate::common::span::{ParseCtx, SpanPlace};
 
 #[derive(Debug)]
@@ -51,6 +52,7 @@ impl Cerr {
 
 #[derive(Error, Debug)]
 pub enum CerrKind {
+  // HXX->IR1
   #[error("invalid s-expression")]
   InvalidSexpr(#[from] lexpr::parse::Error),
   #[error("invalid syntax")]
@@ -58,7 +60,21 @@ pub enum CerrKind {
   #[error("invalid syntax, expected {0}")]
   ExpectedThing(String),
   #[error("invalid syntax, unexpected end of list")]
-  UnexpectedEndOfList
+  UnexpectedEndOfList,
+
+  // IR1->IR2
+  #[error("undeclared variable")]
+  UndeclaredVariable,
+  #[error("undeclared type")]
+  UndeclaredType,
+  #[error("invalid identifier")]
+  InvalidIdent,
+  #[error("float literals are unsupported")]
+  FloatsLiteralsUnsupported,
+  #[error("no matching function declaration")]
+  NoMatchingFuncDecl,
+  #[error("multiple matching function declarations:\n  {0}")]
+  MultipleMatchingFuncDecls(SepVec<String>),
 }
 
 pub type Result<T> = std::result::Result<T, Cerr>;

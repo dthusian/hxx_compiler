@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
-#[derive(Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct ParseCtx {
   pub filename: String,
   pub lines: Vec<String>,
@@ -14,7 +14,7 @@ impl Debug for ParseCtx {
 }
 
 /// Represents a section of a source file.
-#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct SpanPlace {
   pub ctx: Rc<ParseCtx>,
   pub start_line: usize,
@@ -61,7 +61,7 @@ impl Display for SpanPlace {
   }
 }
 
-#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Span<T> {
   pub span: SpanPlace,
   pub t: T
@@ -80,5 +80,12 @@ impl<T> Span<T> {
       span: self.span,
       t: f(self.t)?,
     })
+  }
+
+  pub fn as_ref(&self) -> Span<&T> {
+    Span {
+      span: self.span.clone(),
+      t: &self.t
+    }
   }
 }

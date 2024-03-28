@@ -134,7 +134,7 @@ fn parse_let_stmt(ctx: &Rc<ParseCtx>, datum: Ref) -> common::Result<IR1LetStmt> 
   ctx.get_assert_kw(ctx.index_list(&list, 0)?, "let")?;
   Ok(IR1LetStmt {
     decl: parse_var_decl(&ctx, ctx.index_list(&list, 1)?)?,
-    init: invert(ctx.index_list(&list, 2).ok().map(|v| parse_expr(&ctx, v)))?,
+    init: parse_expr(&ctx, ctx.index_list(&list, 2)?)?,
   })
 }
 

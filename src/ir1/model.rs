@@ -37,7 +37,7 @@ pub enum IR1Stmt {
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct IR1LetStmt {
   pub decl: Span<IR1VarDecl>,
-  pub init: Option<Span<IR1Expr>>,
+  pub init: Span<IR1Expr>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]

@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 lexpr = "0.2.7"
 thiserror = "1.0.58"
+rug = "1.24.0"
