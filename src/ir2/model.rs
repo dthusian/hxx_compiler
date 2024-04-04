@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use rug::{Integer};
 use crate::common::err::{Cerr, CerrKind};
-use crate::common::span::Span;
+use crate::common::span::{Span, SpanPlace};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IR2Program {
@@ -10,10 +10,9 @@ pub struct IR2Program {
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IR2Func {
-  pub span: Span<()>,
+  pub span: SpanPlace,
   pub decl: IR2FuncDecl,
-  pub vars: Vec<IR2VarDecl>,
-  pub body: Vec<IR2Stmt>,
+  pub scope: IR2Scope
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -21,31 +20,29 @@ pub enum IR2Stmt {
   Set(IR2SetStmt),
   If(IR2IfStmt),
   While(IR2WhileStmt),
-  Break(Span<()>)
+  Break(SpanPlace)
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IR2SetStmt {
-  pub span: Span<()>,
-  pub var: Option<String>,
+  pub span: SpanPlace,
+  pub var: Option<IR2VarDecl>,
   pub value: IR2Expr,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IR2IfStmt {
-  pub span: Span<()>,
+  pub span: SpanPlace,
   pub expr: IR2Expr,
-  pub vars: Vec<IR2VarDecl>,
-  pub body1: Vec<IR2Stmt>,
-  pub body2: Vec<IR2Stmt>,
+  pub scope1: IR2Scope,
+  pub scope2: Option<IR2Scope>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IR2WhileStmt {
-  pub span: Span<()>,
+  pub span: SpanPlace,
   pub expr: IR2Expr,
-  pub vars: Vec<IR2VarDecl>,
-  pub body: Vec<IR2Stmt>,
+  pub scope: IR2Scope,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -78,6 +75,15 @@ impl Display for IR2FuncDecl {
   }
 }
 
+/// A scope is a combination of a list of variables and a statement list.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct IR2Scope {
+  pub vars: Vec<IR2VarDecl>,
+  pub stmt_list: Vec<IR2Stmt>
+}
+
+/// This struct is NOT the same as IR1VarDecl.
+/// It is the renamed version of an IR1VarDecl.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IR2VarDecl {
   pub name: String,
@@ -86,6 +92,7 @@ pub struct IR2VarDecl {
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum IR2Type {
+  Void,
   Int(IR2IntType),
   Ptr(Box<IR2Type>),
 }
@@ -93,6 +100,7 @@ pub enum IR2Type {
 impl Display for IR2Type {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     match self {
+      IR2Type::Void => write!(f, "void"),
       IR2Type::Int(ty) => write!(f, "{}", ty),
       IR2Type::Ptr(inner) => write!(f, "*{}", inner),
     }
