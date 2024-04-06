@@ -2,8 +2,12 @@
 
 program = { func };
 
-func = "(", ":fn", "(", func-name, { func-arg }, ")", type-name, stmt-list, ")";
+func = "(", { decl-attr }, ":fn", "(", func-name, { func-arg }, ")", type-name, [stmt-list], ")";
 func-arg = var-decl;
+
+decl-attr = "(", ":attr", attr-name, { attr-arg }, ")"
+attr-name = identifier
+attr-arg = identifier 
 
 stmt-list = "(", { stmt }, ")";
 stmt = func-call-stmt | set-stmt | let-stmt | if-stmt | while-stmt;

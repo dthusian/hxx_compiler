@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, HashMap};
 use crate::common::eqf64::EqF64;
 use crate::common::span::Span;
 
@@ -8,10 +9,11 @@ pub struct IR1Module {
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct IR1Func {
+  pub attr: BTreeMap<String, Span<String>>,
   pub name: Span<String>,
   pub ret_typ: Span<String>,
   pub args: Span<IR1FuncArgs>,
-  pub body: Span<IR1StmtList>,
+  pub body: Option<Span<IR1StmtList>>,
 }
 
 pub type IR1FuncArgs = Vec<Span<IR1VarDecl>>;

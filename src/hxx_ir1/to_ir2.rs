@@ -4,9 +4,9 @@ use crate::common;
 use crate::common::err::{Cerr, CerrKind};
 use crate::common::sepvec::SepVec;
 use crate::common::span::{Span, SpanPlace};
-use crate::common::util::invert;
-use crate::ir1::model::{IR1Constant, IR1Expr, IR1Func, IR1IfStmt, IR1Module, IR1Stmt, IR1StmtList, IR1VarDecl, IR1WhileStmt};
-use crate::ir2::model::{IR2Expr, IR2Func, IR2FuncCall, IR2FuncDecl, IR2IfStmt, IR2IntType, IR2Program, IR2Scope, IR2SetStmt, IR2Stmt, IR2Type, IR2VarDecl, IR2WhileStmt};
+use crate::common::util::{invert, invert2};
+use crate::hxx_ir1::model::{IR1Constant, IR1Expr, IR1Func, IR1IfStmt, IR1Module, IR1Stmt, IR1StmtList, IR1VarDecl, IR1WhileStmt};
+use crate::ir2::model::{IR2Expr, IR2Func, IR2FuncAttr, IR2FuncCall, IR2FuncDecl, IR2IfStmt, IR2IntType, IR2Program, IR2Scope, IR2SetStmt, IR2Stmt, IR2Type, IR2VarDecl, IR2WhileStmt};
 use crate::ir2::type_resolve::{function_matches, infer_expr_type, ResolveType};
 
 struct ProgramContext {
@@ -49,16 +49,16 @@ impl<'a> ScopeChain<'a> {
   }
 }
 
-pub fn ir1_to_ir2(modules: &[IR1Module], builtins: &[IR2FuncDecl]) -> common::Result<IR2Program> {
+pub fn ir1_to_ir2(modules: &[IR1Module]) -> common::Result<IR2Program> {
   let mut ctx = ProgramContext {
-    functions: builtins.to_owned(),
+    functions: vec![],
   };
   collect_toplevel_decls(modules, &mut ctx)?;
   let program = IR2Program {
     funcs: modules.iter()
       .map(|v|
         v.functions.iter()
-          .map(|v| transform_func(v, &ctx))
+          .filter_map(|v| invert2(transform_func(v, &ctx)))
       )
       .flatten()
       .collect::<common::Result<Vec<_>>>()?,
@@ -75,7 +75,11 @@ fn collect_toplevel_decls(modules: &[IR1Module], ctx: &mut ProgramContext) -> co
   Ok(())
 }
 
-fn transform_func(func: &Span<IR1Func>, ctx: &ProgramContext) -> common::Result<IR2Func> {
+fn transform_func(func: &Span<IR1Func>, ctx: &ProgramContext) -> common::Result<Option<IR2Func>> {
+  if func.t.body.is_none() {
+    return Ok(None);
+  }
+  let body = func.t.body.as_ref().unwrap();
   let decl = transform_func_decl(func)?;
   let mut scope = ScopeChain {
     renamed_vars: vec![],
@@ -85,19 +89,27 @@ fn transform_func(func: &Span<IR1Func>, ctx: &ProgramContext) -> common::Result<
   decl.params.iter().for_each(|v| {
     scope.define_var(&v.name, v.ty.clone());
   });
-  let scope = transform_stmt_list(&func.t.body, ctx, &scope)?;
-  Ok(IR2Func {
+  let scope = transform_stmt_list(body, ctx, &scope)?;
+  Ok(Some(IR2Func {
     span: func.span.clone(),
     decl,
     scope,
-  })
+  }))
 }
 
 fn transform_func_decl(decl: &Span<IR1Func>) -> common::Result<IR2FuncDecl> {
   Ok(IR2FuncDecl {
+    attrs: decl.t.attr.iter().map(|(k, v)| transform_func_attr(k, v)).collect::<common::Result<Vec<_>>>()?,
     name: validate_identifier(&decl.t.name)?.t.clone(),
     return_ty: transform_type(&decl.t.ret_typ.as_ref().map(String::as_str))?,
     params: decl.t.args.t.iter().map(|v| transform_var_decl(&v)).collect::<common::Result<Vec<_>>>()?,
+  })
+}
+
+fn transform_func_attr(attr_name: &str, attr_val: &Span<String>) -> common::Result<IR2FuncAttr> {
+  Ok(match attr_name {
+    "builtin-function" => IR2FuncAttr::BuiltinFunction(attr_val.t.clone()),
+    &_ => return Err(Cerr::with_span(CerrKind::UnknownAttribute, attr_val.span.clone()))
   })
 }
 

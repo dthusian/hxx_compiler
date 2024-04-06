@@ -1,7 +1,7 @@
 
 (:fn (factorial (x i32)) i32 (
   (:let (product i32) 1)
-  (:while (add 2 2) (
+  (:while 1 (
     (:if (lt x 1) (
       (:break)
     ))

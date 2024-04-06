@@ -6,3 +6,4 @@
 
 pub mod to_ir2;
 pub mod model;
+pub mod from_hxx;

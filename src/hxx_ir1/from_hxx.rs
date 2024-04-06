@@ -3,6 +3,7 @@
 //!
 //! All this module needs to do is transform HXX into IR1.
 
+use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 use lexpr::{Parser, Value};
 use lexpr::datum::Ref;
@@ -12,7 +13,7 @@ use crate::common::eqf64::EqF64;
 use crate::common::err::{Cerr, CerrKind};
 use crate::common::span::{ParseCtx, Span, SpanPlace};
 use crate::common::util::invert;
-use crate::ir1::model::*;
+use crate::hxx_ir1::model::*;
 
 /// Parses an HXX file into IR1.
 pub fn hxx_to_ir1(filename: &str, contents: &str) -> common::Result<IR1Module> {
@@ -61,13 +62,30 @@ fn helper_handle_lexpr_error(ctx: &Rc<ParseCtx>, e: lexpr::parse::Error) -> Cerr
 /// In HXX, a each top-level statement (currently only functions) gets a seperate S-expr tree.
 fn parse_function(ctx: &Rc<ParseCtx>, datum: Ref) -> common::Result<Span<IR1Func>> {
   let list = ctx.get_list(datum)?;
-  ctx.get_assert_kw(ctx.index_list(&list, 0)?, "fn")?;
-  let fndecl = ctx.get_list(ctx.index_list(&list, 1)?)?;
+  let mut idx = 0;
+  // parse attrs
+  let mut attr = BTreeMap::new();
+  loop {
+    let el = ctx.index_list(&list, idx)?;
+    if el.is_list() {
+      let attr_list = ctx.get_list(el)?;
+      ctx.get_assert_kw(ctx.index_list(&attr_list, 0)?, "attr")?;
+      let attr_name = ctx.get_id(ctx.index_list(&attr_list, 1)?)?;
+      let attr_val = ctx.get_id(ctx.index_list(&attr_list, 2)?)?;
+      attr.insert(attr_name.t.to_owned(), Span { span: attr_list.span, t: attr_val.t.to_owned() });
+      idx += 1;
+    } else {
+      break;
+    }
+  }
+  ctx.get_assert_kw(ctx.index_list(&list, idx)?, "fn")?;
+  let fndecl = ctx.get_list(ctx.index_list(&list, idx + 1)?)?;
   Ok(ctx.span_with(IR1Func {
+    attr,
     name: ctx.get_id(ctx.index_list(&fndecl, 0)?)?.map(|v| v.to_owned()),
-    ret_typ: ctx.get_id(ctx.index_list(&list, 2)?)?.map(|v| v.to_owned()),
-    args: parse_func_args(&ctx, ctx.index_list(&list, 1)?)?,
-    body: parse_stmt_list(&ctx, ctx.index_list(&list, 3)?)?,
+    ret_typ: ctx.get_id(ctx.index_list(&list, idx + 2)?)?.map(|v| v.to_owned()),
+    args: parse_func_args(&ctx, ctx.index_list(&list, idx + 1)?)?,
+    body: invert(ctx.index_list(&list, idx + 3).ok().map(|v| parse_stmt_list(&ctx, v)))?,
   }, datum))
 }
 

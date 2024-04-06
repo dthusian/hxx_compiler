@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, write};
 use rug::{Integer};
 use crate::common::err::{Cerr, CerrKind};
 use crate::common::span::{Span, SpanPlace};
@@ -60,9 +60,15 @@ pub struct IR2FuncCall {
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IR2FuncDecl {
+  pub attrs: Vec<IR2FuncAttr>,
   pub name: String,
   pub return_ty: IR2Type,
   pub params: Vec<IR2VarDecl>
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum IR2FuncAttr {
+  BuiltinFunction(String)
 }
 
 impl Display for IR2FuncDecl {
@@ -71,6 +77,7 @@ impl Display for IR2FuncDecl {
     for arg in &self.params {
       write!(f, " ({} {})", arg.name, arg.ty)?;
     }
+    write!(f, " {})", self.return_ty)?;
     Ok(())
   }
 }
@@ -110,7 +117,8 @@ impl Display for IR2Type {
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum IR2IntType {
   I8, I16, I32, I64,
-  U8, U16, U32, U64
+  U8, U16, U32, U64,
+  Bool,
 }
 
 impl Display for IR2IntType {
@@ -124,6 +132,7 @@ impl Display for IR2IntType {
       IR2IntType::U16 => write!(f, "u16"),
       IR2IntType::U32 => write!(f, "u32"),
       IR2IntType::U64 => write!(f, "u64"),
+      IR2IntType::Bool => write!(f, "bool")
     }
   }
 }
@@ -139,6 +148,7 @@ impl IR2IntType {
       "u16" => IR2IntType::U16,
       "u32" => IR2IntType::U32,
       "u64" => IR2IntType::U64,
+      "bool" => IR2IntType::Bool,
       &_ => return None
     })
   }

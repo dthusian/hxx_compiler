@@ -17,13 +17,14 @@ impl Display for Cerr {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     writeln!(f, "error: at {}: {}", &self.span, &self.kind)?;
     writeln!(f)?;
-    let start_line = &self.span.ctx.lines[self.span.start_line - 1];
+    let start_line = self.span.ctx.lines.get(self.span.start_line - 1).cloned().unwrap_or("".to_owned());
     writeln!(f, "  {}", start_line)?;
     let squiggle_len = if self.span.start_line != self.span.end_line {
-      start_line.len() - self.span.start_col
+      start_line.len().saturating_sub(self.span.start_col)
     } else {
-      self.span.end_col - self.span.start_col
+      self.span.end_col.saturating_sub(self.span.start_col)
     };
+    let squiggle_len = squiggle_len.max(1);
     writeln!(f, "  {}{}", " ".repeat(self.span.start_col), "~".repeat(squiggle_len))?;
     if self.span.start_line != self.span.end_line {
       writeln!(f, "   ...")?;
@@ -75,6 +76,8 @@ pub enum CerrKind {
   NoMatchingFuncDecl,
   #[error("multiple matching function declarations:\n  {0}")]
   MultipleMatchingFuncDecls(SepVec<String>),
+  #[error("unknown attribute")]
+  UnknownAttribute,
 }
 
 pub type Result<T> = std::result::Result<T, Cerr>;
