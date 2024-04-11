@@ -30,10 +30,11 @@ All targets must support basic instructions, but extended instructions can be em
 ### Notation
 
 - `<x: T>` defines a mandatory parameter called `x` that is a `T`. 
-  - `block` refers to a block.
-  - `const` refers to an integer constant.
-  - `d<n>` refers to a variable that is data of length `n`.
-  - `ptr` refers to any pointer variable.
+  - `block` refers to a block. (syntax: `@<x>`)
+  - `const` refers to an integer constant. (syntax: `<x>`)
+  - `var` refers to any variable. (syntax: `$<x>`)
+  - `d<n>` refers to a variable that is data of length `n`. (syntax: `$<x>`)
+  - `ptr` refers to any pointer variable. (syntax: `$<x>`)
   - All other values mean `x` is a variable of a type given by type parameters.
 - `<T: type>` creates a type parameter called `T`.
 - `<T: type is data>` creates a type parameter `T` with a type constraint that says it must be data.
@@ -42,6 +43,8 @@ All targets must support basic instructions, but extended instructions can be em
 ### Control Flow
 
 - `arg <T: type> <idx: const> -> <res: T>` - Gets the `idx`th argument.
+- `call <T: type> <name> <A1: type> <arg1: A1> [<A2: type> <arg2: A2>] ... -> <res: T>` -
+  Calls another function. Can appear in the middle of a BB, as calls do not cause control flow deviations.
 - `br <block: block>` - Jumps to `<block>`.
 - `br_if <cond: d1> <block1: block> <block2: block>` - Branches to `<block1>` if `<cond>` is not zero, otherwise branches to `<block2>`
 - `ret <T: type> <var: T>` - Returns from the function.
@@ -51,8 +54,8 @@ All targets must support basic instructions, but extended instructions can be em
 ### Data Manipulation
 
 - `const <T: type is data> <const: const> -> <res: T>` Loads a constant into a register.
-- `zext <T: type is data> <U: type is data> <x: T> -> <res: U>` Zero-extends an integer.
-- `sext <T: type is data> <U: type is data> <x: T> -> <res: U>` Sign-extends an integer.
+- `zext <T: type is data> <U: type is data> <x: U> -> <res: T>` Zero-extends an integer.
+- `sext <T: type is data> <U: type is data> <x: U> -> <res: T>` Sign-extends an integer.
 
 ### Arithmetic and Bitwise
 
@@ -61,7 +64,7 @@ by essentially everyone.
 
 - `add <T: type is data> <a: T> <b: T> -> <res: T>` - Addition.
 - `sub <T: type is data> <a: T> <b: T> -> <res: T>` - Subtraction.
-- `cmp_<mode> <T: type> <a: T> <b: T> -> <res: d1>` - Arithmetic compare.
+- `cmp <T: type> <mode> <a: T> <b: T> -> <res: d1>` - Arithmetic compare.
   - `<mode>` is one of `ult`, `ugt`, `ule`, `uge`, `slt`, `sgt`, `sle`, `sge`, `eq`, `ne`. Outputs 1 if true, 0 otherwise.
 - `and <T: type is data> <a: T> <b: T> -> <res: T>` - Bitwise AND.
 - `or <T: type is data> <a: T> <b: T> -> <res: T>` - Bitwise OR.
@@ -73,8 +76,10 @@ by essentially everyone.
 
 ### Multiplication and Division
 
-- `smul <T: type is data> <a: T> <b: T> -> <res: T>` - Signed multiply.
-- `umul <T: type is data> <a: T> <b: T> -> <res: T>` - Unsigned multiply.
+- `smull <T: type is data> <a: T> <b: T> -> <res: T>` - Signed multiply.
+- `umull <T: type is data> <a: T> <b: T> -> <res: T>` - Unsigned multiply.
+- `smulh <T: type is data> <a: T> <b: T> -> <res: T>` - Signed multiply, retrieve upper half.
+- `umulh <T: type is data> <a: T> <b: T> -> <res: T>` - Unsigned multiply, retrieve upper half.
 - `sdiv <T: type is data> <a: T> <b: T> -> <res: T>` - Signed divide.
 - `udiv <T: type is data> <a: T> <b: T> -> <res: T>` - Unsigned divide.
 - `srem <T: type is data> <a: T> <b: T> -> <res: T>` - Signed Remainder.
@@ -86,3 +91,21 @@ by essentially everyone.
 - `ptr_store <T: type> <ptr: ptr> <data: T>` - Store a value of `<type>` to `<ptr>`.
 - `ptr_sadd <T: type is data> <ptr: ptr> <off: T> -> <res: ptr>` - Add a signed offset to a `<ptr>`.
 - `ptr_uadd <T: type is data> <ptr: ptr> <off: T> -> <res: ptr>` - Add an unsigned offset to a `<ptr>`.
+
+## Semantics
+
+While the semantics of above operations should be clear for the most part, exact semantics are discussed below.
+
+### `add`, `sub`
+
+Uses two's complement arithmetic, so there are no seperate signed and unsigned versions.
+
+### `srl`, `sra`
+
+`srl` is a logical shift, so it shifts in zeros. `sra` is an arithmetic shift, it shifts in copies of the sign bit.
+
+### `ptr_uadd`, `ptr_sadd`
+
+We assume that the native pointer representation is also an integer in two's complement representation.
+If the offset is smaller in bit-width than the pointer, then it is sign (for `ptr_sadd`) or zero (for `ptr_uadd`)
+extended before adding. If the offset is larger in bit-width than the pointer, then it is truncated before adding.

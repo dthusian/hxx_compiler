@@ -10,7 +10,7 @@
   ))
 ))
 
-(:fn (main (argc u64) (argv *u8)) i32 (
+(:fn (main (argc u64) (argv **u8)) i32 (
   (:let (x u32) 1)
   (println x)
   (:if 1 (
